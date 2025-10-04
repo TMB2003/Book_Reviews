@@ -1,6 +1,7 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const app = express();
+const cors = require('cors');
 const userRoutes = require('./routes/userRoute');
 const bookRoutes = require('./routes/bookRoute');
 const reviewRoutes = require('./routes/reviewRoute');
@@ -8,6 +9,9 @@ const reviewRoutes = require('./routes/reviewRoute');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// CORS: allow frontend dev origins and REST clients
+app.use(cors());
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
