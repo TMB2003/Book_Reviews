@@ -10,8 +10,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// CORS: allow frontend dev origins and REST clients
-app.use(cors());
+// CORS: allow configured frontend origins and REST clients
+const ORIGINS = process.env.FRONTEND_ORIGIN
+  ? process.env.FRONTEND_ORIGIN.split(',').map(s => s.trim())
+  : ['http://localhost:5173'];
+const corsOptions = {
+  origin: (origin, cb) => {
+    // Allow non-browser clients (no origin) and configured origins
+    if (!origin || ORIGINS.includes(origin) || ORIGINS.includes('*')) return cb(null, true);
+    return cb(null, false);
+  },
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
