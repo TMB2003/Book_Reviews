@@ -3,8 +3,8 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const { MONGO_URI_BOOK, MONGODB_URI, MONGO_URI, MONGO_URL } = process.env;
-const SINGLE_URI = MONGO_URI_BOOK || MONGODB_URI || MONGO_URI || MONGO_URL;
+const { MONGO_URI_BOOK } = process.env.MONGO_URI_BOOK;
+const SINGLE_URI = MONGO_URI_BOOK;
 
 if (!SINGLE_URI) {
   console.warn('⚠️ No Mongo URI found. Set one of: MONGO_URI_BOOK, MONGODB_URI, MONGO_URI, MONGO_URL');
