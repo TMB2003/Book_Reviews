@@ -3,33 +3,33 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const { MONGO_URI_BOOK } = process.env.MONGO_URI_BOOK;
+// Single Mongo URI for all collections
+const { MONGO_URI_BOOK } = process.env;
 const SINGLE_URI = MONGO_URI_BOOK;
 
 if (!SINGLE_URI) {
-  console.warn('⚠️ No Mongo URI found. Set one of: MONGO_URI_BOOK, MONGODB_URI, MONGO_URI, MONGO_URL');
+  console.warn('⚠️ MONGO_URI_BOOK is not set');
 }
 
 // Single dedicated connection for all collections (users, books, reviews)
-const dbConn = SINGLE_URI ? mongoose.createConnection(SINGLE_URI, {}) : null;
+// Create immediately so models can bind to it via dbConn.model(...)
+const dbConn = SINGLE_URI ? mongoose.createConnection(SINGLE_URI, {
+  serverSelectionTimeoutMS: 5000,
+  connectTimeoutMS: 5000,
+  retryWrites: true,
+  w: 'majority',
+}) : null;
 
 if (dbConn) {
   dbConn.on('connected', () => console.log('✅ Mongo DB connected'));
-  dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err));
+  dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err?.message || err));
   dbConn.on('disconnected', () => console.warn('⚠️ Mongo DB disconnected'));
 }
 
 async function connectDb() {
-  try {
-    if (!dbConn) throw new Error('No Mongo URI configured');
-    await dbConn.asPromise();
-    console.log('✅ MongoDB connection established');
-  } catch (err) {
-    console.error('❌ Mongo connection error:', err.message);
-    // In serverless environments avoid exiting the entire process
-    // so that the platform can handle retries or show proper errors
-    throw err;
-  }
+  if (!dbConn) throw new Error('No Mongo URI configured');
+  await dbConn.asPromise();
+  console.log('✅ MongoDB connection established');
 }
 
 process.on('SIGINT', async () => {
