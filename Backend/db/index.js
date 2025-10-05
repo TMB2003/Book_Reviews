@@ -3,38 +3,36 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const { MONGO_URI_BOOK } = process.env;
-const SINGLE_URI = MONGO_URI_BOOK;
+const { MONGO_URI_BOOK, MONGO_URI } = process.env;
+const SINGLE_URI = MONGO_URI_BOOK || MONGO_URI;
 
 if (!SINGLE_URI) {
-  console.warn('⚠️ MONGO_URI_BOOK (or MONGO_URI) is not set in .env');
+  console.warn('⚠️ MONGO_URI_BOOK (or MONGO_URI) is not set in environment');
 }
 
-// Single dedicated connection for all collections (users, books, reviews)
-const dbConn = SINGLE_URI ? mongoose.createConnection(SINGLE_URI, {}) : null;
-
-if (dbConn) {
-  dbConn.on('connected', () => console.log('✅ Mongo DB connected'));
-  dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err));
-  dbConn.on('disconnected', () => console.warn('⚠️ Mongo DB disconnected'));
-}
+// Lazily created, cached connection (safe for serverless cold starts)
+let dbConn = null;
 
 async function connectDb() {
-  try {
-    if (!dbConn) throw new Error('No Mongo URI configured');
-    await dbConn.asPromise();
-    console.log('✅ MongoDB connection established');
-  } catch (err) {
-    console.error('❌ Mongo connection error:', err.message);
-    process.exit(1);
-  }
-}
+  if (!SINGLE_URI) throw new Error('No Mongo URI configured');
+  if (dbConn && dbConn.readyState === 1) return dbConn; // connected
 
-process.on('SIGINT', async () => {
-  if (dbConn) await dbConn.close();
-  console.log('🛑 MongoDB connection closed due to app termination');
-  process.exit(0);
-});
+  if (!dbConn) {
+    dbConn = mongoose.createConnection(SINGLE_URI, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+      retryWrites: true,
+      w: 'majority',
+    });
+    dbConn.on('connected', () => console.log('✅ Mongo DB connected'));
+    dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err?.message || err));
+    dbConn.on('disconnected', () => console.warn('⚠️ Mongo DB disconnected'));
+  }
+
+  await dbConn.asPromise();
+  console.log('✅ MongoDB connection established');
+  return dbConn;
+}
 
 function checkConnections() {
   return { db: dbConn?.readyState };

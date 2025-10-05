@@ -5,6 +5,7 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoute');
 const bookRoutes = require('./routes/bookRoute');
 const reviewRoutes = require('./routes/reviewRoute');
+const { checkConnections } = require('./db');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -17,6 +18,12 @@ app.use(cors());
 app.get('/', (req, res) => {
   console.log('Home route hit at', new Date().toISOString());
   res.send('Backend is running');
+});
+
+// DB health (returns connection readyState)
+app.get('/api/health', (req, res) => {
+  const s = checkConnections();
+  res.json({ status: 'ok', mongo: s });
 });
 
 // API routes
