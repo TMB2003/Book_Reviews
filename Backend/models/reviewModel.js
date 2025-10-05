@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { reviewConn } = require('../db');
+const { dbConn } = require('../db');
 
 const reviewSchema = new mongoose.Schema(
   {
@@ -14,5 +14,5 @@ const reviewSchema = new mongoose.Schema(
 // Optional index to prevent duplicate reviews per user per book
 reviewSchema.index({ bookId: 1, userId: 1 }, { unique: false });
 
-module.exports = reviewConn.model('Review', reviewSchema);
+module.exports = dbConn.model('Review', reviewSchema);
 

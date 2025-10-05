@@ -3,67 +3,41 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const {
-  MONGO_URI_USER,
-  MONGO_URI_BOOK,
-  MONGO_URI_REVIEW
-} = process.env;
+const { MONGO_URI_BOOK } = process.env;
+const SINGLE_URI = MONGO_URI_BOOK;
 
-// Warn if any URIs are missing
-if (!MONGO_URI_USER || !MONGO_URI_BOOK || !MONGO_URI_REVIEW) {
-  console.warn('⚠️ Ensure MONGO_URI_USER, MONGO_URI_BOOK, and MONGO_URI_REVIEW are set in the .env file');
+if (!SINGLE_URI) {
+  console.warn('⚠️ MONGO_URI_BOOK (or MONGO_URI) is not set in .env');
 }
 
-// Create connections (only if URIs exist)
-const userConn = MONGO_URI_USER ? mongoose.createConnection(MONGO_URI_USER, {}) : null;
-const bookConn = MONGO_URI_BOOK ? mongoose.createConnection(MONGO_URI_BOOK, {}) : null;
-const reviewConn = MONGO_URI_REVIEW ? mongoose.createConnection(MONGO_URI_REVIEW, {}) : null;
+// Single dedicated connection for all collections (users, books, reviews)
+const dbConn = SINGLE_URI ? mongoose.createConnection(SINGLE_URI, {}) : null;
 
-// Optional: Add event listeners for debugging
-function attachListeners(conn, name) {
-  if (!conn) return;
-  conn.on('connected', () => console.log(`✅ ${name} DB connected`));
-  conn.on('error', (err) => console.error(`❌ ${name} DB connection error:`, err));
-  conn.on('disconnected', () => console.warn(`⚠️ ${name} DB disconnected`));
+if (dbConn) {
+  dbConn.on('connected', () => console.log('✅ Mongo DB connected'));
+  dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err));
+  dbConn.on('disconnected', () => console.warn('⚠️ Mongo DB disconnected'));
 }
 
-attachListeners(userConn, 'User');
-attachListeners(bookConn, 'Book');
-attachListeners(reviewConn, 'Review');
-
-// Connect all and wait
-async function connectAll() {
+async function connectDb() {
   try {
-    const connections = [userConn, bookConn, reviewConn].filter(Boolean);
-    await Promise.all(connections.map(conn => conn.asPromise()));
-    console.log('✅ All MongoDB connections established (user, book, review)');
+    if (!dbConn) throw new Error('No Mongo URI configured');
+    await dbConn.asPromise();
+    console.log('✅ MongoDB connection established');
   } catch (err) {
     console.error('❌ Mongo connection error:', err.message);
     process.exit(1);
   }
 }
 
-// Optional: Graceful shutdown
 process.on('SIGINT', async () => {
-  const connections = [userConn, bookConn, reviewConn].filter(Boolean);
-  await Promise.all(connections.map(conn => conn.close()));
-  console.log('🛑 MongoDB connections closed due to app termination');
+  if (dbConn) await dbConn.close();
+  console.log('🛑 MongoDB connection closed due to app termination');
   process.exit(0);
 });
 
-// Optional: Check connection health
 function checkConnections() {
-  return {
-    user: userConn?.readyState,
-    book: bookConn?.readyState,
-    review: reviewConn?.readyState
-  };
+  return { db: dbConn?.readyState };
 }
 
-module.exports = {
-  userConn,
-  bookConn,
-  reviewConn,
-  connectAll,
-  checkConnections
-};
+module.exports = { dbConn, connectDb, checkConnections };

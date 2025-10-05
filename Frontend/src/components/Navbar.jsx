@@ -13,15 +13,15 @@ export default function Navbar() {
     navigate('/login');
   };
 
-  const active = ({ isActive }) => ({ textDecoration: isActive ? 'underline' : 'none' });
+  const linkClass = ({ isActive }) => (isActive ? 'active' : undefined);
 
   return (
     <header className="nav">
       <Link to="/home" className="brand">Book Reviews</Link>
       <nav>
-        <NavLink to="/home" style={active}>Home</NavLink>
-        {isAuthed && <NavLink to="/books/new" style={active}>Add Book</NavLink>}
-        {isAuthed && <NavLink to="/profile" style={active}>Profile</NavLink>}
+        <NavLink to="/home" className={linkClass}>Home</NavLink>
+        {isAuthed && <NavLink to="/books/new" className={linkClass}>Add Book</NavLink>}
+        {isAuthed && <NavLink to="/profile" className={linkClass}>Profile</NavLink>}
       </nav>
       <div className="right">
         <ThemeToggle />

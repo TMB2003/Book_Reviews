@@ -2,14 +2,25 @@ const Book = require('../models/bookModel');
 const Review = require('../models/reviewModel');
 const User = require('../models/userModel');
 
+// Normalize genre(s) from string or array to a unique, trimmed string array
+function normalizeGenres(input) {
+  if (input == null) return [];
+  let arr = Array.isArray(input) ? input : String(input).split(',');
+  return arr
+    .map((g) => (typeof g === 'string' ? g.trim() : g))
+    .filter((g) => g && typeof g === 'string')
+    .filter((g, i, self) => self.indexOf(g) === i);
+}
+
 // Add book (creator becomes owner)
 exports.createBook = async (req, res) => {
   try {
     const { title, author, description, genre, year } = req.body;
-    if (!title || !author || !genre || !year) {
+    const genres = normalizeGenres(genre);
+    if (!title || !author || genres.length === 0 || !year) {
       return res.status(400).json({ message: 'title, author, genre, year are required' });
     }
-    const book = await Book.create({ title, author, description, genre, year, addedBy: req.user.id });
+    const book = await Book.create({ title, author, description, genre: genres, year, addedBy: req.user.id });
     return res.status(201).json(book);
   } catch (err) {
     return res.status(500).json({ message: 'Failed to create book', error: err.message });
@@ -92,7 +103,13 @@ exports.updateBook = async (req, res) => {
 
     const updatable = ['title', 'author', 'description', 'genre', 'year'];
     updatable.forEach((f) => {
-      if (req.body[f] !== undefined) book[f] = req.body[f];
+      if (req.body[f] !== undefined) {
+        if (f === 'genre') {
+          book.genre = normalizeGenres(req.body.genre);
+        } else {
+          book[f] = req.body[f];
+        }
+      }
     });
     await book.save();
     return res.json(book);
