@@ -13,6 +13,12 @@ app.use(cookieParser());
 // CORS: allow frontend dev origins and REST clients
 app.use(cors());
 
+// Home route (for quick check)
+app.get('/', (req, res) => {
+  console.log('Home route hit at', new Date().toISOString());
+  res.send('Backend is running');
+});
+
 // API routes
 app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
