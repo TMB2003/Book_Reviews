@@ -3,36 +3,38 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const { MONGO_URI_BOOK, MONGO_URI } = process.env;
-const SINGLE_URI = MONGO_URI_BOOK || MONGO_URI;
+const { MONGO_URI_BOOK } = process.env;
+const SINGLE_URI = MONGO_URI_BOOK;
 
 if (!SINGLE_URI) {
-  console.warn('⚠️ MONGO_URI_BOOK (or MONGO_URI) is not set in environment');
+  console.warn('⚠️ MONGO_URI_BOOK (or MONGO_URI) is not set in .env');
 }
 
-// Lazily created, cached connection (safe for serverless cold starts)
-let dbConn = null;
+// Single dedicated connection for all collections (users, books, reviews)
+const dbConn = SINGLE_URI ? mongoose.createConnection(SINGLE_URI, {}) : null;
+
+if (dbConn) {
+  dbConn.on('connected', () => console.log('✅ Mongo DB connected'));
+  dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err));
+  dbConn.on('disconnected', () => console.warn('⚠️ Mongo DB disconnected'));
+}
 
 async function connectDb() {
-  if (!SINGLE_URI) throw new Error('No Mongo URI configured');
-  if (dbConn && dbConn.readyState === 1) return dbConn; // connected
-
-  if (!dbConn) {
-    dbConn = mongoose.createConnection(SINGLE_URI, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
-      retryWrites: true,
-      w: 'majority',
-    });
-    dbConn.on('connected', () => console.log('✅ Mongo DB connected'));
-    dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err?.message || err));
-    dbConn.on('disconnected', () => console.warn('⚠️ Mongo DB disconnected'));
+  try {
+    if (!dbConn) throw new Error('No Mongo URI configured');
+    await dbConn.asPromise();
+    console.log('✅ MongoDB connection established');
+  } catch (err) {
+    console.error('❌ Mongo connection error:', err.message);
+    process.exit(1);
   }
-
-  await dbConn.asPromise();
-  console.log('✅ MongoDB connection established');
-  return dbConn;
 }
+
+process.on('SIGINT', async () => {
+  if (dbConn) await dbConn.close();
+  console.log('🛑 MongoDB connection closed due to app termination');
+  process.exit(0);
+});
 
 function checkConnections() {
   return { db: dbConn?.readyState };
