@@ -1,4 +1,4 @@
-export default function SearchBar({ query, setQuery, genre, setGenre, sort, setSort }) {
+export default function SearchBar({ query, setQuery, genre, setGenre, sort, setSort, genres = [] }) {
   return (
     <div className="toolbar toolbar--search">
       <input
@@ -10,12 +10,10 @@ export default function SearchBar({ query, setQuery, genre, setGenre, sort, setS
       <div className="search-filters">
         <select className="search-select" value={genre} onChange={(e) => setGenre(e.target.value)}>
           <option value="">All Genres</option>
-          <option>Fiction</option>
-          <option>Non-Fiction</option>
-          <option>Fantasy</option>
-          <option>Romance</option>
-          <option>Thriller</option>
-          <option>Biography</option>
+          {(genres && genres.length ? genres : ['Fiction','Non-Fiction','Fantasy','Romance','Thriller','Biography','Science','Self-Help','History','Mystery'])
+            .map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
         </select>
         <select className="search-select" value={sort} onChange={(e) => setSort(e.target.value)}>
           <option value="newest">Sort: Newest</option>

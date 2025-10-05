@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getMe, listBooks, getBook } from '../services/api.js';
+import RatingStars from '../components/RatingStars.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Link } from 'react-router-dom';
 
@@ -10,6 +11,7 @@ export default function Profile() {
   const [myReviews, setMyReviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [avgMap, setAvgMap] = useState({});
 
   useEffect(() => {
     const run = async () => {
@@ -49,6 +51,22 @@ export default function Profile() {
     run();
   }, []);
 
+  // Load average rating for books shown in My Books
+  useEffect(() => {
+    const loadAverages = async () => {
+      if (!myBooks?.length) { setAvgMap({}); return; }
+      try {
+        const resps = await Promise.all(myBooks.map(b => getBook(b._id).catch(() => null)));
+        const m = {};
+        resps.forEach(r => { if (r?.data) m[r.data.book._id] = r.data.averageRating || 0; });
+        setAvgMap(m);
+      } catch {
+        // ignore
+      }
+    };
+    loadAverages();
+  }, [myBooks]);
+
   return (
     <div>
       <section className="card-panel">
@@ -67,9 +85,16 @@ export default function Profile() {
         <div className="grid">
           {myBooks.map(b => (
             <Link className="card" key={b._id} to={`/books/${b._id}`}>
-              <h4>{b.title}</h4>
-              <p className="muted">{b.author}</p>
-              <p>{b.genre} · {b.year}</p>
+              <h3 style={{ marginBottom: 6 }}>{b.title}</h3>
+              <p className="muted meta">{b.author} <span className="dot">•</span> {b.year}</p>
+              <div className="badges">
+                {(Array.isArray(b.genre) ? b.genre : String(b.genre || '').split(',').map(s=>s.trim()).filter(Boolean)).map((g, idx) => (
+                  <span key={idx} className="badge">{g}</span>
+                ))}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <RatingStars value={avgMap[b._id] ?? 0} />
+              </div>
             </Link>
           ))}
         </div>
@@ -77,11 +102,11 @@ export default function Profile() {
 
       <section className="card-panel">
         <h3>My Reviews</h3>
-        <ul className="list">
+        <ul className="list comments-list">
           {myReviews.map(r => (
-            <li key={r._id} className="list-item">
-              <p><strong>{r.bookTitle}</strong></p>
-              <p>{r.reviewText}</p>
+            <li key={r._id} className="list-item comment-item">
+              <p className="muted" style={{ marginBottom: 6 }}><strong>{r.bookTitle}</strong></p>
+              <p className="comment-text">{r.reviewText}</p>
             </li>
           ))}
         </ul>

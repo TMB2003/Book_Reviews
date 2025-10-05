@@ -9,6 +9,7 @@ export default function BookForm({ mode = 'create' }) {
   const [form, setForm] = useState({ title: '', author: '', description: '', genre: [], year: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [yearError, setYearError] = useState('');
 
   const GENRE_OPTIONS = [
     'Fiction','Non-Fiction','Fantasy','Romance','Thriller','Biography','Science','Self-Help','History','Mystery'
@@ -35,7 +36,14 @@ export default function BookForm({ mode = 'create' }) {
     load();
   }, [isEdit, id]);
 
-  const onChange = (e) => setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    setForm((s) => ({ ...s, [name]: value }));
+    if (name === 'year') {
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 1) setYearError('Invalid year'); else setYearError('');
+    }
+  };
   const addGenre = (value) => {
     if (!value) return;
     setForm((s) => ({ ...s, genre: s.genre.includes(value) ? s.genre : [...s.genre, value] }));
@@ -45,7 +53,13 @@ export default function BookForm({ mode = 'create' }) {
   const onSubmit = async (e) => {
     e.preventDefault(); setLoading(true); setError('');
     try {
-      const payload = { ...form, year: Number(form.year), genre: form.genre };
+      const n = Number(form.year);
+      if (!Number.isFinite(n) || n < 1) {
+        setYearError('Invalid year');
+        setLoading(false);
+        return;
+      }
+      const payload = { ...form, year: n, genre: form.genre };
       if (isEdit) await updateBook(id, payload); else await createBook(payload);
       navigate('/');
     } catch (err) {
@@ -80,7 +94,10 @@ export default function BookForm({ mode = 'create' }) {
             </select>
           </div>
         </label>
-        <label>Published Year<input type="number" name="year" value={form.year} onChange={onChange} required /></label>
+        <label>Published Year
+          <input type="number" name="year" value={form.year} onChange={onChange} required min={1} step={1} className={yearError ? 'invalid' : ''} />
+          {yearError && <small className="error">{yearError}</small>}
+        </label>
         <label>Description<textarea name="description" value={form.description} onChange={onChange} /></label>
         {error && <p className="error">{error}</p>}
         <button className="btn" disabled={loading}>{loading ? 'Saving...' : (isEdit ? 'Save Changes' : 'Create Book')}</button>

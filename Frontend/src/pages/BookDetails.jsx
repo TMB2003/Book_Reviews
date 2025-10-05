@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getBook, createReview, updateReview, deleteReview } from '../services/api.js';
 import RatingStars from '../components/RatingStars.jsx';
+import StarRating from '../components/StarRating.jsx';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const COLORS = ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'];
@@ -86,9 +87,7 @@ export default function BookDetails() {
         <h3>Add a Review</h3>
         <form onSubmit={submitReview} className="form">
           <label>Rating
-            <select value={myReview.rating} onChange={(e)=>setMyReview(s=>({...s, rating:Number(e.target.value)}))}>
-              {[1,2,3,4,5].map(n=> <option key={n} value={n}>{n}</option>)}
-            </select>
+            <StarRating value={myReview.rating} onChange={(n)=>setMyReview(s=>({...s, rating:n}))} />
           </label>
           <label>Review
             <textarea value={myReview.reviewText} onChange={(e)=>setMyReview(s=>({...s, reviewText:e.target.value}))} placeholder="Write your thoughts..." />
