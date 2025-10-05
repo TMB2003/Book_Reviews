@@ -98,9 +98,21 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: Inter, u
 @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
 
 .form { display: grid; gap: 12px; }
-.form label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+.form label { display: grid; gap: 6px; font-size: 14px; color: var(--fg); font-weight: 600; }
 .form input, .form select, .form textarea { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: inherit; }
 .form textarea { min-height: 110px; resize: vertical; }
+
+/* Two-column layout for paired fields */
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .row-2 { grid-template-columns: 1fr; } }
+
+/* Chips selector styles */
+.chips-wrap { display: grid; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(37,99,235,.12); color: #1d4ed8; border: 1px solid rgba(37,99,235,.25); }
+[data-theme="dark"] .chip { background: rgba(37,99,235,.18); color: #93c5fd; border-color: rgba(37,99,235,.3); }
+.chip button { appearance: none; border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
+.chips-wrap select { height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); width: 100%; }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
 .toolbar--search { align-items: center; gap: 10px; }
