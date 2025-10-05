@@ -3,11 +3,11 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const { MONGO_URI_BOOK } = process.env;
-const SINGLE_URI = MONGO_URI_BOOK;
+const { MONGO_URI_BOOK, MONGODB_URI, MONGO_URI, MONGO_URL } = process.env;
+const SINGLE_URI = MONGO_URI_BOOK || MONGODB_URI || MONGO_URI || MONGO_URL;
 
 if (!SINGLE_URI) {
-  console.warn('⚠️ MONGO_URI_BOOK (or MONGO_URI) is not set in .env');
+  console.warn('⚠️ No Mongo URI found. Set one of: MONGO_URI_BOOK, MONGODB_URI, MONGO_URI, MONGO_URL');
 }
 
 // Single dedicated connection for all collections (users, books, reviews)
@@ -26,7 +26,9 @@ async function connectDb() {
     console.log('✅ MongoDB connection established');
   } catch (err) {
     console.error('❌ Mongo connection error:', err.message);
-    process.exit(1);
+    // In serverless environments avoid exiting the entire process
+    // so that the platform can handle retries or show proper errors
+    throw err;
   }
 }
 
