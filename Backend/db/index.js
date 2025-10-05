@@ -1,40 +1,43 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const { MONGO_URI_BOOK } = process.env;
+const SINGLE_URI = MONGO_URI_BOOK;
 
-if (!MONGO_URI_BOOK) {
-  throw new Error("⚠️ MONGO_URI_BOOK is not set in environment variables.");
+if (!SINGLE_URI) {
+  console.warn('⚠️ MONGO_URI_BOOK (or MONGO_URI) is not set in .env');
 }
 
-// Use global object to store cached connection (important for serverless)
-let cached = global.mongoose;
+// Single dedicated connection for all collections (users, books, reviews)
+const dbConn = SINGLE_URI ? mongoose.createConnection(SINGLE_URI, {}) : null;
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+if (dbConn) {
+  dbConn.on('connected', () => console.log('✅ Mongo DB connected'));
+  dbConn.on('error', (err) => console.error('❌ Mongo DB connection error:', err));
+  dbConn.on('disconnected', () => console.warn('⚠️ Mongo DB disconnected'));
 }
 
 async function connectDb() {
-  if (cached.conn) {
-    console.log("🔁 Using existing MongoDB connection");
-    return cached.conn;
+  try {
+    if (!dbConn) throw new Error('No Mongo URI configured');
+    await dbConn.asPromise();
+    console.log('✅ MongoDB connection established');
+  } catch (err) {
+    console.error('❌ Mongo connection error:', err.message);
+    process.exit(1);
   }
-
-  if (!cached.promise) {
-    console.log("🕓 Creating new MongoDB connection...");
-    cached.promise = mongoose.connect(MONGO_URI_BOOK, {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000, // fail fast if not reachable
-    }).then((mongooseInstance) => {
-      console.log("✅ MongoDB connected");
-      return mongooseInstance;
-    }).catch((err) => {
-      console.error("❌ Mongo connection error:", err.message);
-      throw err;
-    });
-  }
-
-  cached.conn = await cached.promise;
-  return cached.conn;
 }
 
-module.exports = { connectDb };
+process.on('SIGINT', async () => {
+  if (dbConn) await dbConn.close();
+  console.log('🛑 MongoDB connection closed due to app termination');
+  process.exit(0);
+});
+
+function checkConnections() {
+  return { db: dbConn?.readyState };
+}
+
+module.exports = { dbConn, connectDb, checkConnections };
